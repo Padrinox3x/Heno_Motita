@@ -204,6 +204,11 @@ func main() {
 		mongodb,
 	)
 
+	managerPortalHandler :=
+		handlers.NewManagerPortalHandler(
+			mongodb,
+		)
+
 	crewHandler := handlers.NewCrewHandler(
 		mongodb,
 	)
@@ -211,6 +216,11 @@ func main() {
 	studentHandler := handlers.NewStudentHandler(
 		mongodb,
 	)
+
+	studentPortalHandler :=
+		handlers.NewStudentPortalHandler(
+			mongodb,
+		)
 
 	studentHistoryHandler :=
 		handlers.NewStudentHistoryHandler(
@@ -375,6 +385,13 @@ func main() {
 		mongodb,
 	)
 
+	routes.RegisterManagerPortalRoutes(
+		router,
+		managerPortalHandler,
+		jwtManager,
+		mongodb,
+	)
+
 	routes.RegisterCrewRoutes(
 		router,
 		crewHandler,
@@ -394,6 +411,13 @@ func main() {
 	routes.RegisterStudentRoutes(
 		router,
 		studentHandler,
+		jwtManager,
+		mongodb,
+	)
+
+	routes.RegisterStudentPortalRoutes(
+		router,
+		studentPortalHandler,
 		jwtManager,
 		mongodb,
 	)
