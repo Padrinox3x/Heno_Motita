@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"heno-motita-api/internal/config"
@@ -13,6 +15,7 @@ import (
 	"heno-motita-api/internal/security"
 	"heno-motita-api/internal/services"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -209,6 +212,11 @@ func main() {
 		mongodb,
 	)
 
+	studentHistoryHandler :=
+		handlers.NewStudentHistoryHandler(
+			mongodb,
+		)
+
 	treeHandler := handlers.NewTreeHandler(
 		mongodb,
 	)
@@ -224,12 +232,6 @@ func main() {
 			cloudinaryService,
 			cloudinarySettings.MaxImageSizeBytes,
 		)
-
-	studentHistoryHandler :=
-		handlers.NewStudentHistoryHandler(
-			mongodb,
-		)
-
 	// ============================================
 	// CONFIGURAR GIN
 	// ============================================
@@ -244,11 +246,62 @@ func main() {
 
 	// Controla la memoria utilizada al procesar
 	// formularios multipart.
-	//
-	// El handler también utiliza http.MaxBytesReader
-	// para impedir archivos mayores al límite.
 	router.MaxMultipartMemory =
 		cloudinarySettings.MaxImageSizeBytes
+
+	// ============================================
+	// CONFIGURAR CORS
+	// ============================================
+
+	allowedOrigins := loadAllowedOrigins()
+
+	corsConfig := cors.Config{
+		AllowOrigins: allowedOrigins,
+
+		AllowMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+			http.MethodOptions,
+		},
+
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+			"X-Requested-With",
+		},
+
+		ExposeHeaders: []string{
+			"Content-Length",
+		},
+
+		// Los JWT se envían mediante el encabezado
+		// Authorization, no mediante cookies.
+		AllowCredentials: false,
+
+		MaxAge: 12 * time.Hour,
+	}
+
+	// Permite usar CORS_ALLOWED_ORIGINS=*
+	// únicamente cuando se requiera durante desarrollo.
+	if len(allowedOrigins) == 1 &&
+		allowedOrigins[0] == "*" {
+		corsConfig.AllowAllOrigins = true
+		corsConfig.AllowOrigins = nil
+	}
+
+	router.Use(
+		cors.New(corsConfig),
+	)
+
+	log.Printf(
+		"Orígenes permitidos por CORS: %s",
+		strings.Join(allowedOrigins, ", "),
+	)
 
 	// ============================================
 	// RUTAS DE SALUD
@@ -329,6 +382,15 @@ func main() {
 		mongodb,
 	)
 
+	// Se registra primero el historial porque contiene
+	// la ruta estática /students/history.
+	routes.RegisterStudentHistoryRoutes(
+		router,
+		studentHistoryHandler,
+		jwtManager,
+		mongodb,
+	)
+
 	routes.RegisterStudentRoutes(
 		router,
 		studentHandler,
@@ -357,13 +419,6 @@ func main() {
 		mongodb,
 	)
 
-	routes.RegisterStudentHistoryRoutes(
-		router,
-		studentHistoryHandler,
-		jwtManager,
-		mongodb,
-	)
-
 	// ============================================
 	// MANEJO DE RUTAS NO ENCONTRADAS
 	// ============================================
@@ -385,15 +440,38 @@ func main() {
 	// INICIAR SERVIDOR
 	// ============================================
 
-	address := "0.0.0.0:" + cfg.Port
+	port := strings.TrimSpace(
+		cfg.Port,
+	)
+
+	// Render proporciona PORT automáticamente.
+	if renderPort := strings.TrimSpace(
+		os.Getenv("PORT"),
+	); renderPort != "" {
+		port = renderPort
+	}
+
+	if port == "" {
+		port = "8080"
+	}
+
+	address := "0.0.0.0:" + port
 
 	log.Printf(
-		"Servidor iniciado en http://localhost:%s",
-		cfg.Port,
+		"Servidor iniciado en el puerto %s",
+		port,
 	)
 
 	log.Println(
 		"Rutas principales disponibles:",
+	)
+
+	log.Println(
+		"GET    /health",
+	)
+
+	log.Println(
+		"GET    /health/database",
 	)
 
 	log.Println(
@@ -409,11 +487,31 @@ func main() {
 	)
 
 	log.Println(
+		"GET    /api/v1/students/history",
+	)
+
+	log.Println(
+		"GET    /api/v1/students/:id/memberships",
+	)
+
+	log.Println(
+		"POST   /api/v1/crews/:id/students/:studentId/reactivate",
+	)
+
+	log.Println(
 		"POST   /api/v1/crews/:id/trees",
 	)
 
 	log.Println(
+		"GET    /api/v1/crews/:id/trees",
+	)
+
+	log.Println(
 		"POST   /api/v1/trees/:id/observations",
+	)
+
+	log.Println(
+		"GET    /api/v1/trees/:id/observations",
 	)
 
 	log.Println(
@@ -434,4 +532,63 @@ func main() {
 			err,
 		)
 	}
+}
+
+// loadAllowedOrigins obtiene los dominios permitidos
+// desde CORS_ALLOWED_ORIGINS.
+//
+// Ejemplo:
+//
+// CORS_ALLOWED_ORIGINS=http://localhost:5173,https://mi-frontend.onrender.com
+func loadAllowedOrigins() []string {
+	defaultOrigins := []string{
+		"http://localhost:5173",
+		"http://localhost:3000",
+	}
+
+	value := strings.TrimSpace(
+		os.Getenv("CORS_ALLOWED_ORIGINS"),
+	)
+
+	if value == "" {
+		return defaultOrigins
+	}
+
+	origins := make(
+		[]string,
+		0,
+	)
+
+	seen := make(
+		map[string]struct{},
+	)
+
+	for _, origin := range strings.Split(
+		value,
+		",",
+	) {
+		origin = strings.TrimSpace(origin)
+		origin = strings.TrimSuffix(origin, "/")
+
+		if origin == "" {
+			continue
+		}
+
+		if _, exists := seen[origin]; exists {
+			continue
+		}
+
+		seen[origin] = struct{}{}
+
+		origins = append(
+			origins,
+			origin,
+		)
+	}
+
+	if len(origins) == 0 {
+		return defaultOrigins
+	}
+
+	return origins
 }
