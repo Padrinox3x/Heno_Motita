@@ -5,6 +5,7 @@ go 1.26.5
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/joho/godotenv v1.5.1
+	github.com/sendgrid/sendgrid-go v3.16.1+incompatible
 	go.mongodb.org/mongo-driver/v2 v2.8.0
 	golang.org/x/crypto v0.54.0
 )
@@ -13,6 +14,7 @@ require (
 	github.com/creasty/defaults v1.7.0 // indirect
 	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect
+	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 )
 
 require (

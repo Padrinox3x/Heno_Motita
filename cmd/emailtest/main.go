@@ -12,7 +12,7 @@ import (
 )
 
 // Script de prueba: envía un correo de verificación
-// usando la configuración SMTP del archivo .env.
+// usando la API de SendGrid con la configuración del .env.
 //
 // Uso:
 //
@@ -21,25 +21,22 @@ import (
 func main() {
 	_ = godotenv.Load()
 
-	config := services.SMTPConfig{
-		Host:     os.Getenv("SMTP_HOST"),
-		Port:     os.Getenv("SMTP_PORT"),
-		User:     os.Getenv("SMTP_USER"),
-		Password: os.Getenv("SMTP_PASSWORD"),
-		From:     os.Getenv("SMTP_FROM"),
-		FromName: os.Getenv("SMTP_FROM_NAME"),
+	config := services.SendGridConfig{
+		APIKey:   os.Getenv("SENDGRID_API_KEY"),
+		From:     os.Getenv("SENDGRID_FROM"),
+		FromName: os.Getenv("SENDGRID_FROM_NAME"),
 	}
 
 	emailService := services.NewEmailService(config)
 
 	if !emailService.IsConfigured() {
 		fmt.Println(
-			"ERROR: SMTP no está configurado en el archivo .env",
+			"ERROR: SENDGRID_API_KEY no está configurado en el archivo .env",
 		)
 		os.Exit(1)
 	}
 
-	recipient := os.Getenv("SMTP_FROM")
+	recipient := os.Getenv("SENDGRID_FROM")
 	if len(os.Args) > 1 &&
 		os.Args[1] != "" {
 		recipient = os.Args[1]
@@ -56,9 +53,8 @@ func main() {
 	)
 
 	fmt.Printf(
-		"Enviando correo de prueba a %s vía %s...\n",
+		"Enviando correo de prueba a %s vía SendGrid...\n",
 		recipient,
-		config.Host+":"+config.Port,
 	)
 
 	err := emailService.SendActivationCode(

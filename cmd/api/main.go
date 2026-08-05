@@ -192,17 +192,14 @@ func main() {
 	)
 
 	// ============================================
-	// CONFIGURAR CORREO SMTP
+	// CONFIGURAR CORREO (SENDGRID)
 	// ============================================
 
 	emailService := services.NewEmailService(
-		services.SMTPConfig{
-			Host:     cfg.SMTPHost,
-			Port:     cfg.SMTPPort,
-			User:     cfg.SMTPUser,
-			Password: cfg.SMTPPassword,
-			From:     cfg.SMTPFrom,
-			FromName: cfg.SMTPFromName,
+		services.SendGridConfig{
+			APIKey:   cfg.SendGridAPIKey,
+			From:     cfg.SendGridFrom,
+			FromName: cfg.SendGridFromName,
 		},
 	)
 
@@ -212,7 +209,7 @@ func main() {
 		)
 	} else {
 		log.Println(
-			"Aviso: SMTP no configurado. Los correos se imprimirán en consola",
+			"Aviso: SENDGRID_API_KEY no configurado. Los correos se imprimirán en consola",
 		)
 	}
 

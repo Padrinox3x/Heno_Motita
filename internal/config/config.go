@@ -27,13 +27,10 @@ type Config struct {
 	JWTIssuer         string
 	JWTAccessDuration time.Duration
 
-	// Configuración SMTP para el envío de correos.
-	SMTPHost     string
-	SMTPPort     string
-	SMTPUser     string
-	SMTPPassword string
-	SMTPFrom     string
-	SMTPFromName string
+	// Configuración SendGrid para el envío de correos.
+	SendGridAPIKey   string
+	SendGridFrom     string
+	SendGridFromName string
 }
 
 // Load carga las variables del archivo .env durante el desarrollo.
@@ -112,25 +109,14 @@ func Load() (*Config, error) {
 
 		JWTAccessDuration: jwtAccessDuration,
 
-		SMTPHost: getEnv(
-			"SMTP_HOST",
-			"",
+		SendGridAPIKey: strings.TrimSpace(
+			os.Getenv("SENDGRID_API_KEY"),
 		),
-		SMTPPort: getEnv(
-			"SMTP_PORT",
-			"587",
+		SendGridFrom: strings.TrimSpace(
+			os.Getenv("SENDGRID_FROM"),
 		),
-		SMTPUser: strings.TrimSpace(
-			os.Getenv("SMTP_USER"),
-		),
-		SMTPPassword: strings.TrimSpace(
-			os.Getenv("SMTP_PASSWORD"),
-		),
-		SMTPFrom: strings.TrimSpace(
-			os.Getenv("SMTP_FROM"),
-		),
-		SMTPFromName: getEnv(
-			"SMTP_FROM_NAME",
+		SendGridFromName: getEnv(
+			"SENDGRID_FROM_NAME",
 			"Heno Motita",
 		),
 	}
