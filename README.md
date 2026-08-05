@@ -198,8 +198,16 @@ Basado en `.env.example`, más las variables adicionales que requiere `config.Lo
 | `CLOUDINARY_API_SECRET` | **Sí** | — | API secret de Cloudinary. |
 | `CLOUDINARY_FOLDER` | No | `heno-motita` | Carpeta donde se almacenan las imágenes. |
 | `MAX_IMAGE_SIZE_MB` | No | `8` | Tamaño máximo permitido por imagen, en MB. |
+| `SMTP_HOST` | No | — | Servidor SMTP (p. ej. `smtp.gmail.com`). Si queda vacío, los correos se simulan en consola. |
+| `SMTP_PORT` | No | `587` | Puerto SMTP (STARTTLS). |
+| `SMTP_USER` | No | — | Correo del remitente (cuenta Gmail). |
+| `SMTP_PASSWORD` | No | — | Contraseña de aplicación (App Password) de Gmail. |
+| `SMTP_FROM` | No | — | Dirección "De" del correo (normalmente igual a `SMTP_USER`). |
+| `SMTP_FROM_NAME` | No | `Heno Motita` | Nombre visible del remitente. |
 
 > **Nota:** `.env.example` incluye `CLOUDINARY_URL` como referencia general, pero el código (`internal/config/cloudinary.go`) lee específicamente `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET` por separado. Asegúrate de definir esas tres variables individualmente en tu `.env`.
+
+> **Correo (SMTP):** el código de activación de cuentas se envía por correo con `internal/services/email_service.go`. En producción (Render) no existe `.env`, por lo que las variables `SMTP_*` deben definirse en el panel **Environment** del servicio. Si `SMTP_HOST` está vacío, el correo no se envía y su contenido se imprime en la consola (modo desarrollo).
 
 ---
 
@@ -410,6 +418,8 @@ Respuesta `201 Created`:
 }
 ```
 > El `activationCode` solo se devuelve **una vez**, en el momento de la creación; en la base de datos solo se guarda su hash.
+>
+> Además de devolverse en la respuesta, el código de activación se envía por correo SMTP al alumno. Esto ocurre en el registro masivo (`BatchCreate`), al generar un nuevo código (`new-activation-code`) y al reactivar a un alumno en otra cuadrilla.
 
 **`POST /auth/activate`** (público) — Body:
 ```json
