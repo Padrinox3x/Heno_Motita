@@ -26,6 +26,14 @@ type Config struct {
 	JWTAccessSecret   string
 	JWTIssuer         string
 	JWTAccessDuration time.Duration
+
+	// Configuración SMTP para el envío de correos.
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFrom     string
+	SMTPFromName string
 }
 
 // Load carga las variables del archivo .env durante el desarrollo.
@@ -103,6 +111,28 @@ func Load() (*Config, error) {
 		),
 
 		JWTAccessDuration: jwtAccessDuration,
+
+		SMTPHost: getEnv(
+			"SMTP_HOST",
+			"",
+		),
+		SMTPPort: getEnv(
+			"SMTP_PORT",
+			"587",
+		),
+		SMTPUser: strings.TrimSpace(
+			os.Getenv("SMTP_USER"),
+		),
+		SMTPPassword: strings.TrimSpace(
+			os.Getenv("SMTP_PASSWORD"),
+		),
+		SMTPFrom: strings.TrimSpace(
+			os.Getenv("SMTP_FROM"),
+		),
+		SMTPFromName: getEnv(
+			"SMTP_FROM_NAME",
+			"Heno Motita",
+		),
 	}
 
 	if cfg.MongoURI == "" {

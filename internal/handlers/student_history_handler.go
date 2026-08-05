@@ -14,6 +14,7 @@ import (
 	"heno-motita-api/internal/middleware"
 	"heno-motita-api/internal/models"
 	"heno-motita-api/internal/security"
+	"heno-motita-api/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -24,19 +25,22 @@ import (
 // StudentHistoryHandler contiene las colecciones utilizadas
 // por el módulo de historial y reactivación.
 type StudentHistoryHandler struct {
-	users       *mongo.Collection
-	crews       *mongo.Collection
-	memberships *mongo.Collection
+	users        *mongo.Collection
+	crews        *mongo.Collection
+	memberships  *mongo.Collection
+	emailService *services.EmailService
 }
 
 // NewStudentHistoryHandler crea el handler del módulo.
 func NewStudentHistoryHandler(
 	mongodb *database.MongoDB,
+	emailService *services.EmailService,
 ) *StudentHistoryHandler {
 	return &StudentHistoryHandler{
-		users:       mongodb.Collection("users"),
-		crews:       mongodb.Collection("crews"),
-		memberships: mongodb.Collection("crew_memberships"),
+		users:        mongodb.Collection("users"),
+		crews:        mongodb.Collection("crews"),
+		memberships:  mongodb.Collection("crew_memberships"),
+		emailService: emailService,
 	}
 }
 
@@ -806,6 +810,18 @@ func (handler *StudentHistoryHandler) Reactivate(
 			},
 		},
 	)
+
+	if handler.emailService != nil {
+		if err := handler.emailService.SendActivationCode(
+			c.Request.Context(),
+			student.Name,
+			student.Email,
+			activationCode,
+			activationExpiresAt,
+		); err != nil {
+			c.Error(err)
+		}
+	}
 }
 
 func (handler *StudentHistoryHandler) findHistoryStudent(

@@ -192,6 +192,31 @@ func main() {
 	)
 
 	// ============================================
+	// CONFIGURAR CORREO SMTP
+	// ============================================
+
+	emailService := services.NewEmailService(
+		services.SMTPConfig{
+			Host:     cfg.SMTPHost,
+			Port:     cfg.SMTPPort,
+			User:     cfg.SMTPUser,
+			Password: cfg.SMTPPassword,
+			From:     cfg.SMTPFrom,
+			FromName: cfg.SMTPFromName,
+		},
+	)
+
+	if emailService.IsConfigured() {
+		log.Println(
+			"Servicio de correo configurado correctamente",
+		)
+	} else {
+		log.Println(
+			"Aviso: SMTP no configurado. Los correos se imprimirán en consola",
+		)
+	}
+
+	// ============================================
 	// CREAR CONTROLADORES
 	// ============================================
 
@@ -215,6 +240,7 @@ func main() {
 
 	studentHandler := handlers.NewStudentHandler(
 		mongodb,
+		emailService,
 	)
 
 	studentPortalHandler :=
@@ -225,6 +251,7 @@ func main() {
 	studentHistoryHandler :=
 		handlers.NewStudentHistoryHandler(
 			mongodb,
+			emailService,
 		)
 
 	treeHandler := handlers.NewTreeHandler(

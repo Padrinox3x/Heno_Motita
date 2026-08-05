@@ -13,6 +13,7 @@ import (
 	"heno-motita-api/internal/middleware"
 	"heno-motita-api/internal/models"
 	"heno-motita-api/internal/security"
+	"heno-motita-api/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -23,18 +24,21 @@ import (
 // StudentHandler contiene las colecciones necesarias
 // para alumnos y membresías.
 type StudentHandler struct {
-	users       *mongo.Collection
-	crews       *mongo.Collection
-	memberships *mongo.Collection
+	users        *mongo.Collection
+	crews        *mongo.Collection
+	memberships  *mongo.Collection
+	emailService *services.EmailService
 }
 
 func NewStudentHandler(
 	mongodb *database.MongoDB,
+	emailService *services.EmailService,
 ) *StudentHandler {
 	return &StudentHandler{
-		users:       mongodb.Collection("users"),
-		crews:       mongodb.Collection("crews"),
-		memberships: mongodb.Collection("crew_memberships"),
+		users:        mongodb.Collection("users"),
+		crews:        mongodb.Collection("crews"),
+		memberships:  mongodb.Collection("crew_memberships"),
+		emailService: emailService,
 	}
 }
 
@@ -436,6 +440,18 @@ func (handler *StudentHandler) BatchCreate(
 				ExpiresAt:      expiresAt,
 			},
 		)
+
+		if handler.emailService != nil {
+			if err := handler.emailService.SendActivationCode(
+				c.Request.Context(),
+				student.Name,
+				student.Email,
+				activationCode,
+				expiresAt,
+			); err != nil {
+				c.Error(err)
+			}
+		}
 	}
 
 	c.JSON(
@@ -1290,6 +1306,18 @@ func (handler *StudentHandler) NewActivationCode(
 			},
 		},
 	)
+
+	if handler.emailService != nil {
+		if err := handler.emailService.SendActivationCode(
+			c.Request.Context(),
+			student.Name,
+			student.Email,
+			activationCode,
+			expiresAt,
+		); err != nil {
+			c.Error(err)
+		}
+	}
 }
 
 // Activate procesa:
