@@ -954,12 +954,12 @@ func parseStudentPortalPagination(
 			10,
 		)
 
-	if !valid || limit > 50 {
+	if !valid || limit > 100 {
 		c.JSON(
 			http.StatusBadRequest,
 			gin.H{
 				"status":  "error",
-				"message": "limit debe estar entre 1 y 50",
+				"message": "limit debe estar entre 1 y 100",
 			},
 		)
 
